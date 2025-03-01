@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { criarCheckout } from '../utils/api';
+import { useCart } from '../context/CartContext';
 
 const ProdutoCard = ({ produto }) => {
   const [loading, setLoading] = useState(false);
   const [imagemErro, setImagemErro] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const { addToCart } = useCart();
 
   // Função para formatar o preço em BRL
   const formatarPreco = (preco) => {
@@ -30,6 +32,14 @@ const ProdutoCard = ({ produto }) => {
     }
   };
 
+  // Função para adicionar ao carrinho
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(produto, 1);
+    alert(`${produto.nome} adicionado ao carrinho!`);
+  };
+
   return (
     <div
       className="produto-card"
@@ -44,7 +54,7 @@ const ProdutoCard = ({ produto }) => {
           </div>
         ) : (
           <img
-            src={produto.imagem.startsWith('http') ? produto.imagem : `/img/produtos/${produto.imagem}`}
+            src={produto.imagem && produto.imagem.startsWith('http') ? produto.imagem : `/img/produtos/${produto.imagem}`}
             alt={produto.nome}
             className="produto-imagem"
             onError={() => setImagemErro(true)}
@@ -77,28 +87,36 @@ const ProdutoCard = ({ produto }) => {
           <div className="produto-preco">
             {formatarPreco(produto.preco)}
           </div>
-          <button
-            className={`produto-comprar-btn ${loading ? 'loading' : ''}`}
-            onClick={handleCompra}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span className="spinner"></span>
-                Processando...
-              </>
-            ) : 'Comprar'}
-          </button>
+          <div className="produto-botoes">
+            <button
+              className={`produto-cart-btn`}
+              onClick={handleAddToCart}
+            >
+              🛒
+            </button>
+            <button
+              className={`produto-comprar-btn ${loading ? 'loading' : ''}`}
+              onClick={handleCompra}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner"></span>
+                  Processando...
+                </>
+              ) : 'Comprar'}
+            </button>
+          </div>
         </div>
       </div>
 
       <style jsx>{`
         .produto-card {
-          background-color: var(--surface-color);
-          border-radius: var(--border-radius);
+          background-color: var(--surface-color, white);
+          border-radius: var(--border-radius, 0.5rem);
           overflow: hidden;
-          box-shadow: var(--shadow-sm);
-          transition: var(--transition);
+          box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
+          transition: var(--transition, all 0.3s ease);
           height: 100%;
           display: flex;
           flex-direction: column;
@@ -107,7 +125,7 @@ const ProdutoCard = ({ produto }) => {
         
         .produto-card:hover {
           transform: translateY(-5px);
-          box-shadow: var(--shadow-lg);
+          box-shadow: var(--shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.1));
         }
         
         .produto-imagem-container {
@@ -149,14 +167,14 @@ const ProdutoCard = ({ produto }) => {
         
         .produto-imagem-texto {
           font-size: 0.875rem;
-          color: var(--text-light);
+          color: var(--text-light, #64748b);
         }
         
         .produto-categoria-tag {
           position: absolute;
           top: 1rem;
           left: 1rem;
-          background-color: var(--primary-color);
+          background-color: var(--primary-color, #3b82f6);
           color: white;
           padding: 0.25rem 0.75rem;
           border-radius: 1rem;
@@ -172,7 +190,7 @@ const ProdutoCard = ({ produto }) => {
           bottom: 1rem;
           transform: translateX(-50%);
           background-color: rgba(255, 255, 255, 0.9);
-          color: var(--primary-color);
+          color: var(--primary-color, #3b82f6);
           border: none;
           padding: 0.5rem 1.5rem;
           border-radius: 2rem;
@@ -202,18 +220,18 @@ const ProdutoCard = ({ produto }) => {
           font-size: 1.25rem;
           font-weight: 600;
           margin-bottom: 0.5rem;
-          color: var(--text-color);
+          color: var(--text-color, #1e293b);
           line-height: 1.3;
           transition: color 0.2s ease;
         }
         
         .produto-card:hover .produto-nome {
-          color: var(--primary-color);
+          color: var(--primary-color, #3b82f6);
         }
         
         .produto-descricao {
           font-size: 0.875rem;
-          color: var(--text-light);
+          color: var(--text-light, #64748b);
           margin-bottom: 1.25rem;
           line-height: 1.5;
           flex: 1;
@@ -224,14 +242,40 @@ const ProdutoCard = ({ produto }) => {
           justify-content: space-between;
           align-items: center;
           margin-top: auto;
-          border-top: 1px solid var(--light-gray);
+          border-top: 1px solid var(--light-gray, #e2e8f0);
           padding-top: 1rem;
         }
         
         .produto-preco {
           font-size: 1.5rem;
           font-weight: 700;
-          color: var(--primary-color);
+          color: var(--primary-color, #3b82f6);
+        }
+        
+        .produto-botoes {
+          display: flex;
+          gap: 0.5rem;
+        }
+        
+        .produto-cart-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background-color: white;
+          color: var(--primary-color, #3b82f6);
+          border: 1px solid var(--primary-color, #3b82f6);
+          border-radius: var(--border-radius-sm, 0.25rem);
+          width: 2.5rem;
+          height: 2.5rem;
+          font-size: 1.25rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        
+        .produto-cart-btn:hover {
+          background-color: var(--primary-color, #3b82f6);
+          color: white;
+          transform: translateY(-2px);
         }
         
         .produto-comprar-btn {
@@ -239,18 +283,18 @@ const ProdutoCard = ({ produto }) => {
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
-          background-color: var(--primary-color);
+          background-color: var(--primary-color, #3b82f6);
           color: white;
           border: none;
           padding: 0.5rem 1.25rem;
-          border-radius: var(--border-radius-sm);
+          border-radius: var(--border-radius-sm, 0.25rem);
           font-weight: 500;
           cursor: pointer;
           transition: all 0.3s ease;
         }
         
         .produto-comprar-btn:hover {
-          background-color: var(--secondary-color);
+          background-color: var(--secondary-color, #1e40af);
           transform: translateY(-2px);
           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
