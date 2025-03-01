@@ -1,8 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const produtosRoutes = require('./routes/produtos');
-const pagamentosRoutes = require('./routes/pagamentos');
 
 // Carrega variáveis de ambiente
 dotenv.config();
@@ -17,14 +15,51 @@ app.use(cors({
   credentials: true
 }));
 
-// Rotas
-app.use('/api/produtos', produtosRoutes);
-app.use('/api/pagamentos', pagamentosRoutes);
-
 // Rota padrão
 app.get('/', (req, res) => {
   res.send('API do E-commerce com Stripe está funcionando!');
 });
+
+// Definir primeiros os controladores
+const produtoController = {
+  getProdutos: (req, res) => {
+    // Implementação básica para teste
+    const produtos = require('./data/produtos');
+    res.json(produtos);
+  },
+  getProdutoPorId: (req, res) => {
+    const produtos = require('./data/produtos');
+    const { id } = req.params;
+    const produto = produtos.find(p => p.id === parseInt(id));
+    if (!produto) return res.status(404).json({ mensagem: 'Produto não encontrado' });
+    res.json(produto);
+  },
+  getCategorias: (req, res) => {
+    const produtos = require('./data/produtos');
+    const categorias = [...new Set(produtos.map(p => p.categoria))];
+    res.json(categorias);
+  }
+};
+
+const pagamentoController = {
+  criarCheckout: (req, res) => {
+    // Implementação básica para teste
+    res.json({ mensagem: 'Checkout criado com sucesso', sessionId: 'test-session-123' });
+  }
+};
+
+// Configurar rotas diretamente no server.js
+const produtosRouter = express.Router();
+produtosRouter.get('/', produtoController.getProdutos);
+produtosRouter.get('/categorias', produtoController.getCategorias);
+produtosRouter.get('/:id', produtoController.getProdutoPorId);
+
+const pagamentosRouter = express.Router();
+pagamentosRouter.post('/checkout', pagamentoController.criarCheckout);
+
+// Usar as rotas
+app.use('/api/produtos', produtosRouter);
+app.use('/api/pagamentos', pagamentosRouter);
 
 // Inicializa o servidor
 app.listen(PORT, () => {
