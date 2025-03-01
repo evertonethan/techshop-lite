@@ -6,7 +6,7 @@ export default function Cancelado() {
   return (
     <>
       <Head>
-        <title>Pagamento Cancelado | E-commerce Stripe</title>
+        <title>Pagamento Cancelado | TechShop Lite</title>
       </Head>
       <div className="container">
         <div className={styles.cancelPage}>

@@ -6,7 +6,7 @@ export default function Sucesso() {
   return (
     <>
       <Head>
-        <title>Pagamento Confirmado | E-commerce Stripe</title>
+        <title>Pagamento Confirmado | TechShop Lite</title>
       </Head>
       <div className="container">
         <div className={styles.successPage}>

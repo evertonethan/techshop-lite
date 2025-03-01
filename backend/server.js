@@ -20,7 +20,7 @@ app.use('/images', express.static('data'));
 
 // Rota padrão
 app.get('/', (req, res) => {
-  res.send('API do E-commerce com Stripe está funcionando!');
+  res.send('API do TechShop Lite está funcionando!');
 });
 
 // Definir primeiros os controladores

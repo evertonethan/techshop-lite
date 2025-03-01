@@ -15,6 +15,6 @@ export const getStripePublicKey = () => {
 
 // Configurações da aplicação
 export const config = {
-  appName: 'E-commerce Stripe',
-  footerText: '© 2025 E-commerce Stripe. Todos os direitos reservados.',
+  appName: 'TechShop Lite',
+  footerText: '© 2025 TechShop Lite. Todos os direitos reservados.',
 };
