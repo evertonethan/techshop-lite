@@ -580,7 +580,7 @@ p {
 }
 
 /* Dark mode - preparação para implementação futura */
-@media (prefers-color-scheme: dark) {
+/* @media (prefers-color-scheme: dark) {
   :root {
     --background-color: #0f172a;
     --background-alt: #1e293b;
@@ -591,4 +591,4 @@ p {
     --light-gray: #334155;
     --dark-gray: #94a3b8;
   }
-}
+} */
