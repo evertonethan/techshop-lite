@@ -3,16 +3,13 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useCart } from '../context/CartContext';
-import { loadStripe } from '@stripe/stripe-js';
 import axios from 'axios';
-
-// Inicialize o Stripe com a chave pública
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY);
 
 const Checkout = () => {
   const router = useRouter();
   const { cartItems, getCartTotal, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -44,7 +41,7 @@ const Checkout = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // Submeter formulário e criar sessão do Stripe
+  // Submeter formulário
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -53,49 +50,62 @@ const Checkout = () => {
       return;
     }
 
+    setError(null);
+
     try {
       setLoading(true);
 
-      // Preparar os dados do pedido
+      // Preparar os dados do pedido de forma mais simples
       const orderData = {
         items: cartItems.map(item => ({
           id: item.id,
-          quantity: item.quantity,
-          price: item.preco,
-          name: item.nome
+          quantity: item.quantity
         })),
         customer: formData
       };
 
-      // Criar sessão de checkout no Stripe através da nossa API
+      console.log('Enviando dados para checkout:', orderData);
+
+      // Criar sessão de checkout
       const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/pagamentos/create-checkout-session`, orderData);
 
-      // Obter a sessão ID e URL
-      const { sessionId, url } = response.data;
+      console.log('Resposta do checkout:', response.data);
 
-      // Redirecionar para o checkout do Stripe
-      if (url) {
-        window.location.href = url;
+      if (response.data.url) {
+        // Método 1: Redirecionar para o URL do Stripe
+        window.location.href = response.data.url;
       } else {
-        // Abordagem alternativa usando o loadStripe se a URL não for fornecida
-        const stripe = await stripePromise;
-        const { error } = await stripe.redirectToCheckout({
-          sessionId: sessionId
-        });
-
-        if (error) {
-          console.error('Erro ao redirecionar para o Stripe:', error);
-          throw new Error(error.message);
-        }
+        throw new Error('URL de checkout não fornecido pelo servidor');
       }
 
-      // Limpar o carrinho somente será feito quando o pagamento for bem-sucedido
-      // e o usuário retornar à página de sucesso
     } catch (error) {
       console.error('Erro ao processar checkout:', error);
-      alert('Ocorreu um erro ao processar o seu pagamento. Por favor, tente novamente.');
+
+      // Capturar e exibir mensagens de erro específicas
+      let errorMessage = 'Ocorreu um erro ao processar o seu pagamento.';
+
+      if (error.response && error.response.data) {
+        errorMessage = error.response.data.mensagem || errorMessage;
+        console.log('Detalhes do erro:', error.response.data);
+      }
+
+      setError(errorMessage);
       setLoading(false);
     }
+  };
+
+  // Usar método de checkout alternativo - processamento local
+  const handleProcessarPedidoLocal = () => {
+    // Simulação local de processamento para fins de demo
+    setLoading(true);
+
+    setTimeout(() => {
+      // Limpar carrinho
+      clearCart();
+
+      // Redirecionar para página de sucesso
+      router.push('/sucesso');
+    }, 2000);
   };
 
   // Renderizar página de carregamento se o carrinho estiver vazio
@@ -113,6 +123,13 @@ const Checkout = () => {
       <div className="container">
         <div className="checkout-page">
           <h1>Finalizar Compra</h1>
+
+          {error && (
+            <div className="error-message">
+              <p>{error}</p>
+              <p>Tente novamente ou use o método alternativo abaixo.</p>
+            </div>
+          )}
 
           <div className="checkout-container">
             <div className="checkout-form-container">
@@ -266,10 +283,22 @@ const Checkout = () => {
                         <span className="spinner"></span>
                         Processando...
                       </>
-                    ) : 'Finalizar Pedido'}
+                    ) : 'Finalizar com Stripe'}
                   </button>
                 </div>
               </form>
+
+              {/* Opção alternativa */}
+              <div className="alternative-checkout">
+                <p>Problemas com o Stripe? Use nossa opção alternativa:</p>
+                <button
+                  onClick={handleProcessarPedidoLocal}
+                  className="alternative-button"
+                  disabled={loading}
+                >
+                  {loading ? 'Processando...' : 'Simular Checkout (Demo)'}
+                </button>
+              </div>
             </div>
 
             <div className="checkout-summary">
