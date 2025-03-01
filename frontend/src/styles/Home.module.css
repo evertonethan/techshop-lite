@@ -3,17 +3,34 @@
   padding: 2rem 0;
 }
 
-.title {
-  font-size: 2rem;
+.heroSection {
   text-align: center;
   margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: bold;
   color: var(--text-color);
+  margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  color: var(--text-color);
+  font-size: 1.2rem;
+  color: var(--dark-gray);
+  margin-bottom: 2rem;
+}
+
+.searchBox {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.resultsCount {
+  color: var(--dark-gray);
+  font-size: 0.9rem;
 }
 
 .productsGrid {
@@ -46,6 +63,7 @@
 
 .filterButton:hover {
   border-color: var(--primary-color);
+  background-color: rgba(59, 130, 246, 0.05);
 }
 
 .activeFilter {
