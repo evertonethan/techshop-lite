@@ -1,10 +1,13 @@
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { config } from '../utils/config';
-import { useState, useEffect } from 'react';
+import MiniCart from './MiniCart';
+import { useCart } from '../context/CartContext';
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { getCartItemsCount } = useCart();
 
   // Monitora o scroll para mudar a aparência da navbar
   useEffect(() => {
@@ -55,14 +58,22 @@ const Header = () => {
                 Sobre
               </Link>
             </li>
-            <li className="navbar-item navbar-item-highlight">
-              <Link href="/carrinho" className="navbar-link-button">
+            <li className="navbar-item navbar-item-cart">
+              <Link href="/carrinho" className="navbar-cart-link">
                 <span className="cart-icon">🛒</span>
-                <span>Carrinho</span>
+                <span className="cart-text">Carrinho</span>
+                {getCartItemsCount() > 0 && (
+                  <span className="cart-badge">{getCartItemsCount()}</span>
+                )}
               </Link>
             </li>
           </ul>
         </nav>
+
+        {/* MiniCart apenas visível em telas maiores */}
+        <div className="mini-cart-wrapper">
+          <MiniCart />
+        </div>
       </div>
 
       {/* Estilos embutidos para o componente */}
@@ -158,27 +169,39 @@ const Header = () => {
           width: 100%;
         }
         
-        .navbar-link-button {
+        .navbar-cart-link {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          background-color: var(--primary-color);
-          color: white;
-          padding: 0.5rem 1rem;
-          border-radius: 0.375rem;
-          font-weight: 500;
+          color: var(--text-color);
           text-decoration: none;
-          transition: all 0.3s ease;
-        }
-        
-        .navbar-link-button:hover {
-          background-color: var(--secondary-color);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          font-weight: 500;
+          position: relative;
+          padding: 0.5rem 0;
         }
         
         .cart-icon {
           font-size: 1.25rem;
+        }
+        
+        .cart-badge {
+          position: absolute;
+          top: -5px;
+          right: -5px;
+          background-color: var(--primary-color);
+          color: white;
+          border-radius: 50%;
+          min-width: 18px;
+          height: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.7rem;
+          font-weight: bold;
+        }
+        
+        .mini-cart-wrapper {
+          display: none;
         }
         
         .mobile-menu-button {
@@ -241,10 +264,9 @@ const Header = () => {
             padding: 1rem 0;
           }
           
-          .navbar-link-button {
-            width: 80%;
-            justify-content: center;
-            margin: 1rem auto;
+          /* Esconde o minicart no mobile */
+          .navbar-item-cart {
+            display: flex;
           }
           
           /* Animação do menu hamburguer para X quando aberto */
@@ -258,6 +280,16 @@ const Header = () => {
           
           .mobile-open + .mobile-menu-button span:last-child {
             transform: rotate(-45deg) translate(6px, -6px);
+          }
+        }
+        
+        @media (min-width: 769px) {
+          .navbar-item-cart {
+            display: none;
+          }
+          
+          .mini-cart-wrapper {
+            display: block;
           }
         }
       `}</style>
