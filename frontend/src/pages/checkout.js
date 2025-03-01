@@ -3,295 +3,332 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useCart } from '../context/CartContext';
+import { loadStripe } from '@stripe/stripe-js';
+import axios from 'axios';
+
+// Inicialize o Stripe com a chave pública
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY);
 
 const Checkout = () => {
-    const router = useRouter();
-    const { cartItems, getCartTotal, clearCart } = useCart();
-    const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState({
-        nome: '',
-        email: '',
-        telefone: '',
-        endereco: '',
-        cidade: '',
-        estado: '',
-        cep: '',
-    });
+  const router = useRouter();
+  const { cartItems, getCartTotal, clearCart } = useCart();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    nome: '',
+    email: '',
+    telefone: '',
+    endereco: '',
+    cidade: '',
+    estado: '',
+    cep: '',
+  });
 
-    // Redirecionar para a página de carrinho se estiver vazio
-    useEffect(() => {
-        if (cartItems.length === 0) {
-            router.push('/carrinho');
-        }
-    }, [cartItems, router]);
+  // Redirecionar para a página de carrinho se estiver vazio
+  useEffect(() => {
+    if (cartItems.length === 0) {
+      router.push('/carrinho');
+    }
+  }, [cartItems, router]);
 
-    // Formatação de preço em Real
-    const formatarPreco = (preco) => {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-        }).format(preco);
-    };
+  // Formatação de preço em Real
+  const formatarPreco = (preco) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(preco);
+  };
 
-    // Atualizar dados do formulário
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
-    };
+  // Atualizar dados do formulário
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
 
-    // Submeter formulário
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        if (cartItems.length === 0) {
-            alert('Seu carrinho está vazio.');
-            return;
-        }
-
-        try {
-            setLoading(true);
-
-            // Aqui em um ambiente real, enviaríamos os dados para o servidor
-            // para criar uma sessão de checkout do Stripe com todos os itens
-
-            // Simulação de checkout
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // Limpar o carrinho
-            clearCart();
-
-            // Redirecionar para a página de sucesso
-            router.push('/sucesso');
-
-        } catch (error) {
-            console.error('Erro ao processar checkout:', error);
-            alert('Ocorreu um erro ao processar o seu pagamento. Por favor, tente novamente.');
-        } finally {
-            setLoading(false);
-        }
-    };
+  // Submeter formulário e criar sessão do Stripe
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
     if (cartItems.length === 0) {
-        return <div className="loading">Redirecionando...</div>;
+      alert('Seu carrinho está vazio.');
+      return;
     }
 
-    return (
-        <>
-            <Head>
-                <title>Checkout | E-commerce Stripe</title>
-                <meta name="description" content="Finalize sua compra" />
-            </Head>
+    try {
+      setLoading(true);
 
-            <div className="container">
-                <div className="checkout-page">
-                    <h1>Finalizar Compra</h1>
+      // Preparar os dados do pedido
+      const orderData = {
+        items: cartItems.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          price: item.preco,
+          name: item.nome
+        })),
+        customer: formData
+      };
 
-                    <div className="checkout-container">
-                        <div className="checkout-form-container">
-                            <form onSubmit={handleSubmit} className="checkout-form">
-                                <h2>Informações de Contato</h2>
+      // Criar sessão de checkout no Stripe através da nossa API
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/pagamentos/create-checkout-session`, orderData);
 
-                                <div className="form-group">
-                                    <label htmlFor="nome">Nome Completo</label>
-                                    <input
-                                        type="text"
-                                        id="nome"
-                                        name="nome"
-                                        value={formData.nome}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="form-input"
-                                    />
-                                </div>
+      // Obter a sessão ID e URL
+      const { sessionId, url } = response.data;
 
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label htmlFor="email">Email</label>
-                                        <input
-                                            type="email"
-                                            id="email"
-                                            name="email"
-                                            value={formData.email}
-                                            onChange={handleInputChange}
-                                            required
-                                            className="form-input"
-                                        />
-                                    </div>
+      // Redirecionar para o checkout do Stripe
+      if (url) {
+        window.location.href = url;
+      } else {
+        // Abordagem alternativa usando o loadStripe se a URL não for fornecida
+        const stripe = await stripePromise;
+        const { error } = await stripe.redirectToCheckout({
+          sessionId: sessionId
+        });
 
-                                    <div className="form-group">
-                                        <label htmlFor="telefone">Telefone</label>
-                                        <input
-                                            type="tel"
-                                            id="telefone"
-                                            name="telefone"
-                                            value={formData.telefone}
-                                            onChange={handleInputChange}
-                                            required
-                                            className="form-input"
-                                        />
-                                    </div>
-                                </div>
+        if (error) {
+          console.error('Erro ao redirecionar para o Stripe:', error);
+          throw new Error(error.message);
+        }
+      }
 
-                                <h2>Endereço de Entrega</h2>
+      // Limpar o carrinho somente será feito quando o pagamento for bem-sucedido
+      // e o usuário retornar à página de sucesso
+    } catch (error) {
+      console.error('Erro ao processar checkout:', error);
+      alert('Ocorreu um erro ao processar o seu pagamento. Por favor, tente novamente.');
+      setLoading(false);
+    }
+  };
 
-                                <div className="form-group">
-                                    <label htmlFor="endereco">Endereço</label>
-                                    <input
-                                        type="text"
-                                        id="endereco"
-                                        name="endereco"
-                                        value={formData.endereco}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="form-input"
-                                    />
-                                </div>
+  // Renderizar página de carregamento se o carrinho estiver vazio
+  if (cartItems.length === 0) {
+    return <div className="loading">Redirecionando...</div>;
+  }
 
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label htmlFor="cidade">Cidade</label>
-                                        <input
-                                            type="text"
-                                            id="cidade"
-                                            name="cidade"
-                                            value={formData.cidade}
-                                            onChange={handleInputChange}
-                                            required
-                                            className="form-input"
-                                        />
-                                    </div>
+  return (
+    <>
+      <Head>
+        <title>Checkout | E-commerce Stripe</title>
+        <meta name="description" content="Finalize sua compra" />
+      </Head>
 
-                                    <div className="form-group">
-                                        <label htmlFor="estado">Estado</label>
-                                        <select
-                                            id="estado"
-                                            name="estado"
-                                            value={formData.estado}
-                                            onChange={handleInputChange}
-                                            required
-                                            className="form-select"
-                                        >
-                                            <option value="">Selecione</option>
-                                            <option value="AC">Acre</option>
-                                            <option value="AL">Alagoas</option>
-                                            <option value="AP">Amapá</option>
-                                            <option value="AM">Amazonas</option>
-                                            <option value="BA">Bahia</option>
-                                            <option value="CE">Ceará</option>
-                                            <option value="DF">Distrito Federal</option>
-                                            <option value="ES">Espírito Santo</option>
-                                            <option value="GO">Goiás</option>
-                                            <option value="MA">Maranhão</option>
-                                            <option value="MT">Mato Grosso</option>
-                                            <option value="MS">Mato Grosso do Sul</option>
-                                            <option value="MG">Minas Gerais</option>
-                                            <option value="PA">Pará</option>
-                                            <option value="PB">Paraíba</option>
-                                            <option value="PR">Paraná</option>
-                                            <option value="PE">Pernambuco</option>
-                                            <option value="PI">Piauí</option>
-                                            <option value="RJ">Rio de Janeiro</option>
-                                            <option value="RN">Rio Grande do Norte</option>
-                                            <option value="RS">Rio Grande do Sul</option>
-                                            <option value="RO">Rondônia</option>
-                                            <option value="RR">Roraima</option>
-                                            <option value="SC">Santa Catarina</option>
-                                            <option value="SP">São Paulo</option>
-                                            <option value="SE">Sergipe</option>
-                                            <option value="TO">Tocantins</option>
-                                        </select>
-                                    </div>
+      <div className="container">
+        <div className="checkout-page">
+          <h1>Finalizar Compra</h1>
 
-                                    <div className="form-group">
-                                        <label htmlFor="cep">CEP</label>
-                                        <input
-                                            type="text"
-                                            id="cep"
-                                            name="cep"
-                                            value={formData.cep}
-                                            onChange={handleInputChange}
-                                            required
-                                            className="form-input"
-                                        />
-                                    </div>
-                                </div>
+          <div className="checkout-container">
+            <div className="checkout-form-container">
+              <form onSubmit={handleSubmit} className="checkout-form">
+                <h2>Informações de Contato</h2>
 
-                                <div className="checkout-note">
-                                    <p>
-                                        <span role="img" aria-label="info">ℹ️</span> Este é um checkout de demonstração. Nenhum cartão será cobrado.
-                                    </p>
-                                </div>
-
-                                <div className="checkout-actions">
-                                    <Link href="/carrinho" className="back-button">
-                                        Voltar para o Carrinho
-                                    </Link>
-
-                                    <button
-                                        type="submit"
-                                        className="checkout-button"
-                                        disabled={loading}
-                                    >
-                                        {loading ? (
-                                            <>
-                                                <span className="spinner"></span>
-                                                Processando...
-                                            </>
-                                        ) : 'Finalizar Pedido'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-
-                        <div className="checkout-summary">
-                            <div className="summary-header">
-                                <h2>Resumo do Pedido</h2>
-                                <span>{cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'}</span>
-                            </div>
-
-                            <ul className="summary-items">
-                                {cartItems.map((item) => (
-                                    <li key={item.id} className="summary-item">
-                                        <div className="item-info">
-                                            <span className="item-quantity">{item.quantity}x</span>
-                                            <span className="item-name">{item.nome}</span>
-                                        </div>
-                                        <span className="item-price">
-                                            {formatarPreco(item.preco * item.quantity)}
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <div className="summary-totals">
-                                <div className="total-row">
-                                    <span>Subtotal</span>
-                                    <span>{formatarPreco(getCartTotal())}</span>
-                                </div>
-                                <div className="total-row">
-                                    <span>Frete</span>
-                                    <span>Grátis</span>
-                                </div>
-                                <div className="total-row grand-total">
-                                    <span>Total</span>
-                                    <span>{formatarPreco(getCartTotal())}</span>
-                                </div>
-                            </div>
-
-                            <div className="payment-methods">
-                                <h3>Métodos de Pagamento</h3>
-                                <div className="payment-icons">
-                                    <span className="payment-icon">💳</span>
-                                    <span className="payment-icon">💵</span>
-                                    <span className="payment-icon">🏦</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div className="form-group">
+                  <label htmlFor="nome">Nome Completo</label>
+                  <input
+                    type="text"
+                    id="nome"
+                    name="nome"
+                    value={formData.nome}
+                    onChange={handleInputChange}
+                    required
+                    className="form-input"
+                  />
                 </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="email">Email</label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="telefone">Telefone</label>
+                    <input
+                      type="tel"
+                      id="telefone"
+                      name="telefone"
+                      value={formData.telefone}
+                      onChange={handleInputChange}
+                      required
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+
+                <h2>Endereço de Entrega</h2>
+
+                <div className="form-group">
+                  <label htmlFor="endereco">Endereço</label>
+                  <input
+                    type="text"
+                    id="endereco"
+                    name="endereco"
+                    value={formData.endereco}
+                    onChange={handleInputChange}
+                    required
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="cidade">Cidade</label>
+                    <input
+                      type="text"
+                      id="cidade"
+                      name="cidade"
+                      value={formData.cidade}
+                      onChange={handleInputChange}
+                      required
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="estado">Estado</label>
+                    <select
+                      id="estado"
+                      name="estado"
+                      value={formData.estado}
+                      onChange={handleInputChange}
+                      required
+                      className="form-select"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="AC">Acre</option>
+                      <option value="AL">Alagoas</option>
+                      <option value="AP">Amapá</option>
+                      <option value="AM">Amazonas</option>
+                      <option value="BA">Bahia</option>
+                      <option value="CE">Ceará</option>
+                      <option value="DF">Distrito Federal</option>
+                      <option value="ES">Espírito Santo</option>
+                      <option value="GO">Goiás</option>
+                      <option value="MA">Maranhão</option>
+                      <option value="MT">Mato Grosso</option>
+                      <option value="MS">Mato Grosso do Sul</option>
+                      <option value="MG">Minas Gerais</option>
+                      <option value="PA">Pará</option>
+                      <option value="PB">Paraíba</option>
+                      <option value="PR">Paraná</option>
+                      <option value="PE">Pernambuco</option>
+                      <option value="PI">Piauí</option>
+                      <option value="RJ">Rio de Janeiro</option>
+                      <option value="RN">Rio Grande do Norte</option>
+                      <option value="RS">Rio Grande do Sul</option>
+                      <option value="RO">Rondônia</option>
+                      <option value="RR">Roraima</option>
+                      <option value="SC">Santa Catarina</option>
+                      <option value="SP">São Paulo</option>
+                      <option value="SE">Sergipe</option>
+                      <option value="TO">Tocantins</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="cep">CEP</label>
+                    <input
+                      type="text"
+                      id="cep"
+                      name="cep"
+                      value={formData.cep}
+                      onChange={handleInputChange}
+                      required
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="checkout-note">
+                  <p>
+                    <span role="img" aria-label="info">ℹ️</span> Este é um checkout em modo Sandbox. Use o cartão de teste:
+                    <span className="test-card">4242 4242 4242 4242</span> com qualquer data futura e CVC.
+                  </p>
+                </div>
+
+                <div className="checkout-actions">
+                  <Link href="/carrinho" className="back-button">
+                    Voltar para o Carrinho
+                  </Link>
+
+                  <button
+                    type="submit"
+                    className="checkout-button"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <span className="spinner"></span>
+                        Processando...
+                      </>
+                    ) : 'Finalizar Pedido'}
+                  </button>
+                </div>
+              </form>
             </div>
 
-            <style jsx>{`
+            <div className="checkout-summary">
+              <div className="summary-header">
+                <h2>Resumo do Pedido</h2>
+                <span>{cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'}</span>
+              </div>
+
+              <ul className="summary-items">
+                {cartItems.map((item) => (
+                  <li key={item.id} className="summary-item">
+                    <div className="item-info">
+                      <span className="item-quantity">{item.quantity}x</span>
+                      <span className="item-name">{item.nome}</span>
+                    </div>
+                    <span className="item-price">
+                      {formatarPreco(item.preco * item.quantity)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="summary-totals">
+                <div className="total-row">
+                  <span>Subtotal</span>
+                  <span>{formatarPreco(getCartTotal())}</span>
+                </div>
+                <div className="total-row">
+                  <span>Frete</span>
+                  <span>Grátis</span>
+                </div>
+                <div className="total-row grand-total">
+                  <span>Total</span>
+                  <span>{formatarPreco(getCartTotal())}</span>
+                </div>
+              </div>
+
+              <div className="payment-methods">
+                <h3>Métodos de Pagamento</h3>
+                <div className="payment-icons">
+                  <span className="payment-icon">💳</span>
+                  <span className="payment-icon">💵</span>
+                  <span className="payment-icon">🏦</span>
+                </div>
+              </div>
+
+              <div className="stripe-info">
+                <div className="stripe-badge">
+                  <span>Powered by</span>
+                  <span className="stripe-logo">Stripe</span>
+                </div>
+                <p>Pagamentos processados de forma segura</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style jsx>{`
         .checkout-page {
           padding: 2rem 0;
         }
@@ -372,6 +409,15 @@ const Checkout = () => {
           margin: 1.5rem 0;
           font-size: 0.9rem;
           color: #64748b;
+        }
+        
+        .test-card {
+          display: block;
+          font-family: monospace;
+          margin-top: 0.5rem;
+          font-weight: bold;
+          letter-spacing: 1px;
+          color: #2563eb;
         }
         
         .checkout-actions {
@@ -523,10 +569,38 @@ const Checkout = () => {
         .payment-icons {
           display: flex;
           gap: 1rem;
+          margin-bottom: 1.5rem;
         }
         
         .payment-icon {
           font-size: 1.5rem;
+        }
+        
+        .stripe-info {
+          border-top: 1px solid #e2e8f0;
+          padding-top: 1.5rem;
+          margin-top: 1.5rem;
+          text-align: center;
+        }
+        
+        .stripe-badge {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          margin-bottom: 0.5rem;
+        }
+        
+        .stripe-logo {
+          color: #635bff;
+          font-weight: bold;
+          letter-spacing: -0.5px;
+        }
+        
+        .stripe-info p {
+          font-size: 0.85rem;
+          color: #64748b;
+          margin: 0;
         }
         
         .loading {
@@ -554,8 +628,8 @@ const Checkout = () => {
           }
         }
       `}</style>
-        </>
-    );
+    </>
+  );
 };
 
 export default Checkout;
