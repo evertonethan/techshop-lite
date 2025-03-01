@@ -31,7 +31,7 @@ Um projeto de e-commerce minimalista para portfolio com integração de pagament
 1. Clone o repositório
 ```bash
 git clone https://github.com/evertonethan/techshop-lite.git
-cd e-commerce-stripe/backend
+cd techshop-lite/backend
 ```
 
 2. Instale as dependências
