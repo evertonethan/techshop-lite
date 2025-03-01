@@ -32,117 +32,255 @@ const ProdutoCard = ({ produto }) => {
 
   return (
     <div
-      className="card"
+      className="produto-card"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{
-        transform: isHovered ? 'translateY(-5px)' : 'translateY(0)',
-        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-        boxShadow: isHovered
-          ? '0 10px 20px rgba(0, 0, 0, 0.15)'
-          : '0 2px 5px rgba(0, 0, 0, 0.1)'
-      }}
     >
-      <div style={{
-        width: '100%',
-        height: '200px',
-        overflow: 'hidden',
-        backgroundColor: '#f0f0f0',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderTopLeftRadius: '0.5rem',
-        borderTopRightRadius: '0.5rem',
-      }}>
+      <div className="produto-imagem-container">
         {imagemErro ? (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <div style={{ fontSize: '50px', opacity: 0.5 }}>📸</div>
-            <div style={{ fontSize: '14px', opacity: 0.7 }}>Imagem não disponível</div>
+          <div className="produto-imagem-fallback">
+            <div className="produto-imagem-icon">📸</div>
+            <div className="produto-imagem-texto">Imagem não disponível</div>
           </div>
         ) : (
           <img
             src={produto.imagem.startsWith('http') ? produto.imagem : `/img/produtos/${produto.imagem}`}
             alt={produto.nome}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              transition: 'transform 0.3s ease',
-              transform: isHovered ? 'scale(1.05)' : 'scale(1)'
-            }}
+            className="produto-imagem"
             onError={() => setImagemErro(true)}
           />
         )}
-      </div>
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-2">
-          <h3 style={{
-            fontSize: '1.25rem',
-            fontWeight: 'bold',
-            marginBottom: '0.5rem',
-            lineHeight: '1.2',
-            flex: '1'
-          }}>
-            {produto.nome}
-          </h3>
-          <span style={{
-            fontSize: '0.75rem',
-            fontWeight: 'normal',
-            padding: '0.25rem 0.5rem',
-            borderRadius: '0.25rem',
-            backgroundColor: 'var(--accent-color)',
-            color: 'white',
-            display: 'inline-block',
-            marginLeft: '0.5rem'
-          }}>
-            {produto.categoria}
-          </span>
+
+        <div className="produto-categoria-tag">
+          {produto.categoria}
         </div>
 
-        <p style={{
-          fontSize: '0.875rem',
-          color: 'var(--dark-gray)',
-          marginBottom: '1rem',
-          lineHeight: '1.4',
-          minHeight: '40px'
-        }}>
-          {produto.descricao}
-        </p>
-
-        <div className="flex justify-between items-center my-4">
-          <span style={{
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-            color: 'var(--primary-color)'
-          }}>
-            {formatarPreco(produto.preco)}
-          </span>
+        {isHovered && (
           <button
-            className="btn btn-primary"
-            onClick={handleCompra}
-            disabled={loading}
-            style={{
-              position: 'relative',
-              overflow: 'hidden',
-              transition: 'all 0.2s ease',
-              transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-              opacity: loading ? 0.8 : 1
+            className="produto-quickview-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              // Aqui você poderia implementar uma visualização rápida do produto
+              alert(`Visualização rápida de ${produto.nome}`);
             }}
           >
+            Visualizar
+          </button>
+        )}
+      </div>
+
+      <div className="produto-info">
+        <h3 className="produto-nome">{produto.nome}</h3>
+        <p className="produto-descricao">{produto.descricao}</p>
+
+        <div className="produto-footer">
+          <div className="produto-preco">
+            {formatarPreco(produto.preco)}
+          </div>
+          <button
+            className={`produto-comprar-btn ${loading ? 'loading' : ''}`}
+            onClick={handleCompra}
+            disabled={loading}
+          >
             {loading ? (
-              <span>
-                <span style={{ display: 'inline-block', marginRight: '8px', animation: 'spin 1s linear infinite' }}>⟳</span>
+              <>
+                <span className="spinner"></span>
                 Processando...
-              </span>
+              </>
             ) : 'Comprar'}
           </button>
         </div>
       </div>
 
       <style jsx>{`
+        .produto-card {
+          background-color: var(--surface-color);
+          border-radius: var(--border-radius);
+          overflow: hidden;
+          box-shadow: var(--shadow-sm);
+          transition: var(--transition);
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          position: relative;
+        }
+        
+        .produto-card:hover {
+          transform: translateY(-5px);
+          box-shadow: var(--shadow-lg);
+        }
+        
+        .produto-imagem-container {
+          position: relative;
+          width: 100%;
+          height: 200px;
+          overflow: hidden;
+          background-color: #f0f0f0;
+        }
+        
+        .produto-imagem {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.5s ease;
+        }
+        
+        .produto-card:hover .produto-imagem {
+          transform: scale(${isHovered ? '1.05' : '1'});
+        }
+        
+        .produto-imagem-fallback {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          background-color: #f0f0f0;
+          padding: 1rem;
+          text-align: center;
+        }
+        
+        .produto-imagem-icon {
+          font-size: 3rem;
+          opacity: 0.5;
+          margin-bottom: 0.5rem;
+        }
+        
+        .produto-imagem-texto {
+          font-size: 0.875rem;
+          color: var(--text-light);
+        }
+        
+        .produto-categoria-tag {
+          position: absolute;
+          top: 1rem;
+          left: 1rem;
+          background-color: var(--primary-color);
+          color: white;
+          padding: 0.25rem 0.75rem;
+          border-radius: 1rem;
+          font-size: 0.75rem;
+          font-weight: 500;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          z-index: 1;
+        }
+        
+        .produto-quickview-btn {
+          position: absolute;
+          left: 50%;
+          bottom: 1rem;
+          transform: translateX(-50%);
+          background-color: rgba(255, 255, 255, 0.9);
+          color: var(--primary-color);
+          border: none;
+          padding: 0.5rem 1.5rem;
+          border-radius: 2rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          z-index: 2;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          opacity: 0;
+          animation: fadeIn 0.3s forwards;
+        }
+        
+        .produto-quickview-btn:hover {
+          background-color: white;
+          transform: translateX(-50%) translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .produto-info {
+          padding: 1.25rem;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .produto-nome {
+          font-size: 1.25rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          color: var(--text-color);
+          line-height: 1.3;
+          transition: color 0.2s ease;
+        }
+        
+        .produto-card:hover .produto-nome {
+          color: var(--primary-color);
+        }
+        
+        .produto-descricao {
+          font-size: 0.875rem;
+          color: var(--text-light);
+          margin-bottom: 1.25rem;
+          line-height: 1.5;
+          flex: 1;
+        }
+        
+        .produto-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: auto;
+          border-top: 1px solid var(--light-gray);
+          padding-top: 1rem;
+        }
+        
+        .produto-preco {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: var(--primary-color);
+        }
+        
+        .produto-comprar-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          background-color: var(--primary-color);
+          color: white;
+          border: none;
+          padding: 0.5rem 1.25rem;
+          border-radius: var(--border-radius-sm);
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        
+        .produto-comprar-btn:hover {
+          background-color: var(--secondary-color);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .produto-comprar-btn:active {
+          transform: translateY(0);
+        }
+        
+        .produto-comprar-btn.loading {
+          opacity: 0.8;
+          cursor: not-allowed;
+        }
+        
+        .spinner {
+          display: inline-block;
+          width: 1rem;
+          height: 1rem;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          border-top-color: white;
+          animation: spin 1s ease-in-out infinite;
+        }
+        
         @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
       `}</style>
     </div>
