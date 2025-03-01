@@ -15,6 +15,9 @@ app.use(cors({
   credentials: true
 }));
 
+// Adicione após as configurações de middleware
+app.use('/images', express.static('data'));
+
 // Rota padrão
 app.get('/', (req, res) => {
   res.send('API do E-commerce com Stripe está funcionando!');

@@ -5,6 +5,7 @@ import ProdutoCard from '../components/ProdutoCard';
 import Filtros from '../components/Filtros';
 import styles from '../styles/Home.module.css';
 
+
 export default function Home() {
   const [produtos, setProdutos] = useState([]);
   const [categoriaFiltro, setCategoriaFiltro] = useState('todas');
